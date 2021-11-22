@@ -300,17 +300,19 @@ class RRT:
                             Also, please provide any comments or suggestions on how things could be better organized and written.
                     
                         """
-                        #path_list = list(sorted(rrt_path.path_tree.nodes))
-                        path_list = list(sorted(rrt_path.path_tree.nodes[::2], rrt_path.path_tree.nodes[1::2]))
-                        x1, y1 = map(list, zip(*path_list))
+                        path_list = list(zip(*sorted(rrt_path.path_tree.nodes)))
+                        #path_list = list(sorted(rrt_path.path_tree.nodes[::2], rrt_path.path_tree.nodes[1::2]))
+                        #x1, y1 = map(list, zip(*path_list))
+                        #path_list = map(list, zip(*path_sort))
                         
                         """ Added these lines to see if there was a problem with 'rrt_path.path_tree.nodes' data structure """
                         #x1 = np.arange(2, 60, step= 2)
                         #y1 = np.arange(1, len(x1)+1)
 
-                        #print ("smooth", smo,"\n")
-                        print ("x1", x1,"\n")
-                        print ("y1", y1,"\n")
+                        print ("path_list", path_list,"\n")
+                        #print ("x1", x1,"\n")
+                        #print ("y1", y1,"\n")
+
 
                         RRT.wp_nodes = RRT.smooth(path_list)
 
