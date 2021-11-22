@@ -20,7 +20,6 @@ from udacidrone.messaging import MsgID
 from udacidrone.frame_utils import global_to_local
 #from udacidrone.drone import set_home_position
 
-
 import matplotlib
 #matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
@@ -32,9 +31,9 @@ from scipy import interpolate
 import matplotlib.pyplot as plt
 from networkx import Graph
 import graphviz
-
-
 import re
+
+from copy import deepcopy
 
 get_ipython().run_line_magic('matplotlib', 'inline')
 plt.switch_backend('Qt5agg')
@@ -301,24 +300,25 @@ class RRT:
                             Also, please provide any comments or suggestions on how things could be better organized and written.
                     
                         """
-                        
-                        smlist = list(sorted(rrt_path.path_tree.nodes))
-                        x1, y1 = map(list, zip(*smlist))
+                        #path_list = list(sorted(rrt_path.path_tree.nodes))
+                        path_list = list(sorted(rrt_path.path_tree.nodes[::2], rrt_path.path_tree.nodes[1::2]))
+                        x1, y1 = map(list, zip(*path_list))
                         
                         """ Added these lines to see if there was a problem with 'rrt_path.path_tree.nodes' data structure """
                         #x1 = np.arange(2, 60, step= 2)
                         #y1 = np.arange(1, len(x1)+1)
 
-                        
                         #print ("smooth", smo,"\n")
                         print ("x1", x1,"\n")
                         print ("y1", y1,"\n")
 
-                        RRT.wp_nodes = interpolate.CubicSpline(x1, y1)
+                        RRT.wp_nodes = RRT.smooth(path_list)
+
+                        #RRT.wp_nodes = interpolate.CubicSpline(x1, y1)
                         #RRT.wp_nodes = list(map(list, interpolate.CubicSpline(x1, y1)))
                         #RRT.wp_nodes, *rest = interpolate.splprep([a, b] for a, b in (smlist))
                         
-                        print("spline", RRT.wp_nodes)
+                        print("smoothed", RRT.wp_nodes)
 
                         plt.imshow(grid, cmap='Greys', origin='lower')
                         plt.plot(RRT.x_init[1], RRT.x_init[0], 'ro')
@@ -347,6 +347,40 @@ class RRT:
 
     def heuristic(position, goal_position):
         return np.linalg.norm(np.array(position) - np.array(goal_position))
+
+    def smooth(s_path, weight_data=0.5, weight_smooth=0.1, tolerance=0.000001):
+        """
+        Creates a smooth path for a n-dimensional series of coordinates.
+
+        Arguments:
+            path: List containing coordinates of a path
+            weight_data: Float, how much weight to update the data (alpha)
+            weight_smooth: Float, how much weight to smooth the coordinates (beta).
+            tolerance: Float, how much change per iteration is necessary to keep iterating.
+
+        Output:
+            new: List containing smoothed coordinates.
+        """
+
+        new = deepcopy(s_path)
+        dims = len(s_path[0])
+        change = tolerance
+
+        while change >= tolerance:
+            change = 0.0
+            for i in range(1, len(new) - 1):
+                for j in range(dims):
+
+                    x_i = s_path[i][j]
+                    y_i, y_prev, y_next = new[i][j], new[i - 1][j], new[i + 1][j]
+
+                    y_i_saved = y_i
+                    y_i += weight_data * (x_i - y_i) + weight_smooth * (y_next + y_prev - (2 * y_i))
+                    new[i][j] = y_i
+
+                    change += abs(y_i - y_i_saved)
+
+        return new
 
         
 class States(Enum):
