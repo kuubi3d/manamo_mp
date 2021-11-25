@@ -396,17 +396,17 @@ class RRT:
                     print("new", new, "\n")
             new = list(tuple(x) for x in new)
             x = 0
-            for i in range(1, len(new)):
+            for i in range(0, len(new)-1):
                 
                 #x1, y1 = map(list, zip(*new))
                 rrt_path.add_rrt_vertex(new[i])
                 
-                for i in range(len(new)):
-                    s_path[i] = (new[i], new[i+1])
+                for j in range(len(new)):
+                    s_path[j] = (new[j], new[j+1])
 
-            new = list(s_path)
+            #new = list(s_path)
 
-            return new
+            return s_path
 
         
 class States(Enum):
