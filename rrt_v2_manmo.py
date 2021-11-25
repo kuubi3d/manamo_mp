@@ -313,9 +313,11 @@ class RRT:
                         #print ("x1", x1,"\n")
                         #print ("y1", y1,"\n")
 
+                        RRT.wp_nodes = RRT.smooth(path_list)
 
-                        RRT.smooth(path_list)
-                        RRT.wp_nodes = rrt_path.edges
+                        #RRT.smooth(path_list)
+                        #RRT.wp_nodes = rrt_path.path_tree.edges
+                        
                         #RRT.wp_nodes = interpolate.CubicSpline(x1, y1)
                         #RRT.wp_nodes = list(map(list, interpolate.CubicSpline(x1, y1)))
                         #RRT.wp_nodes, *rest = interpolate.splprep([a, b] for a, b in (smlist))
@@ -391,15 +393,20 @@ class RRT:
                     change += abs(y_i - y_i_saved)
 
                     print("change", change)
-                    print("new", new)
+                    print("new", new, "\n")
             new = list(tuple(x) for x in new)
-
-            for i in range(len(new)):
-
+            x = 0
+            for i in range(1, len(new)):
+                
                 #x1, y1 = map(list, zip(*new))
                 rrt_path.add_rrt_vertex(new[i])
+                
+                for i in range(len(new)):
+                    s_path[i] = (new[i], new[i+1])
 
-            return
+            new = list(s_path)
+
+            return new
 
         
 class States(Enum):
