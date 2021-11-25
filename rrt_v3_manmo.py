@@ -352,7 +352,7 @@ class RRT:
     def heuristic(position, goal_position):
         return np.linalg.norm(np.array(position) - np.array(goal_position))
 
-    def smooth(s_path, weight_data=.1, weight_smooth=.001, tolerance=0.0001):
+    def smooth(s_path, weight_data=.1, weight_smooth=.001, tolerance=0.01):
         """
         Creates a smooth path for a n-dimensional series of coordinates.
 
@@ -373,7 +373,7 @@ class RRT:
         while change >= tolerance:
             change = 0.0
             rrt_path = RRT(RRT.x_init)
-            for i in range(1, len(new) - 1):
+            for i in range(1, len(new)-1):
                 for j in range(dims):
 
                     x_i = s_path[i][j]
@@ -394,15 +394,17 @@ class RRT:
 
                     print("change", change)
                     print("new", new, "\n")
-                    new = list(tuple(x) for x in new)
-           
-                    rrt_path.add_rrt_vertex(new[j-1])
-                    s_path[j-1] = (new[j-1], new[j])
+                    s_new = list(tuple(x) for x in new)
+            
+                    rrt_path.add_rrt_vertex(s_new[i-1])
+                    s_path[i-1] = (new[i-1], s_new[i])
+                    print (change <= tolerance)
+                    if change >= 15.91: return s_path
                     
                     #x1, y1 = map(list, zip(*new))
                     #for j in range(0, len(new)-1):
                 
-                return s_path
+        return s_path
 
         
 class States(Enum):
