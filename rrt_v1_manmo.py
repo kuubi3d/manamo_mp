@@ -350,7 +350,7 @@ class RRT:
     def heuristic(position, goal_position):
         return np.linalg.norm(np.array(position) - np.array(goal_position))
 
-    def smooth(s_path, weight_data=.1, weight_smooth=.001, tolerance=0.001):
+    def smooth(s_path, weight_data=.1, weight_smooth=.001, tolerance=0.8):
         """
         Creates a smooth path for a n-dimensional series of coordinates.
 
