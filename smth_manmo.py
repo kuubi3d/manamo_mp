@@ -10,7 +10,6 @@ d = { x : y for x, y in zip(m[::2], m[1::2]) }
 d = list(d)
 print (d)
 
-""" 
 def printpaths(path, newpath):
     for old, new in zip(path, newpath):
         print('[' + ', '.join('%.3f' % x for x in old) +
@@ -21,7 +20,8 @@ path = [[0, 0], [0, 1], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [4, 3], [4, 4]]
 
 
 def smooth(path, weight_data=0.5, weight_smooth=0.1, tolerance=0.000001):
-  
+    
+    """
     Creates a smooth path for a n-dimensional series of coordinates.
 
     Arguments:
@@ -32,7 +32,7 @@ def smooth(path, weight_data=0.5, weight_smooth=0.1, tolerance=0.000001):
 
     Output:
         new: List containing smoothed coordinates.
-   
+    """
 
     new = deepcopy(path)
     dims = len(path[0])
@@ -57,4 +57,3 @@ def smooth(path, weight_data=0.5, weight_smooth=0.1, tolerance=0.000001):
 
 printpaths(path, smooth(path))
 
-"""
