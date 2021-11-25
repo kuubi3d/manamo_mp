@@ -300,7 +300,7 @@ class RRT:
                             Also, please provide any comments or suggestions on how things could be better organized and written.
                     
                         """
-                        path_list = list(zip(*sorted(rrt_path.path_tree.nodes)))
+                        path_list = [list(x) for x in (sorted(rrt_path.path_tree.nodes))]
                         #path_list = list(sorted(rrt_path.path_tree.nodes[::2], rrt_path.path_tree.nodes[1::2]))
                         #x1, y1 = map(list, zip(*path_list))
                         #path_list = map(list, zip(*path_sort))
@@ -326,8 +326,8 @@ class RRT:
                         plt.plot(RRT.x_init[1], RRT.x_init[0], 'ro')
                         plt.plot(RRT.x_goal[1], RRT.x_goal[0], 'ro')
 
-                        #for (v1, v2) in RRT.wp_nodes:
-                        for (v1, v2) in rrt_path.path_tree.edges:
+                        for (v1, v2) in RRT.wp_nodes:
+                        #for (v1, v2) in rrt_path.path_tree.edges:
                             plt.plot([v1[1], v2[1]], [v1[0], v2[0]], 'y-')
                         
                         plt.show(block=True)
@@ -350,7 +350,7 @@ class RRT:
     def heuristic(position, goal_position):
         return np.linalg.norm(np.array(position) - np.array(goal_position))
 
-    def smooth(s_path, weight_data=0.5, weight_smooth=0.1, tolerance=0.000001):
+    def smooth(s_path, weight_data=.1, weight_smooth=.001, tolerance=0.001):
         """
         Creates a smooth path for a n-dimensional series of coordinates.
 
@@ -363,7 +363,7 @@ class RRT:
         Output:
             new: List containing smoothed coordinates.
         """
-
+        
         new = deepcopy(s_path)
         dims = len(s_path[0])
         change = tolerance
@@ -376,12 +376,22 @@ class RRT:
                     x_i = s_path[i][j]
                     y_i, y_prev, y_next = new[i][j], new[i - 1][j], new[i + 1][j]
 
-                    y_i_saved = y_i
-                    y_i += weight_data * (x_i - y_i) + weight_smooth * (y_next + y_prev - (2 * y_i))
-                    new[i][j] = y_i
+                    #print("y_i, y_prev, y_next", y_i, y_prev, y_next)
 
+                    y_i_saved = y_i
+                    #y_1 = (weight_data * (x_i - y_i)) 
+                    #y_2 = (weight_smooth * (y_next + y_prev - (2 * y_i)))
+                    
+                    y_i += weight_data * (x_i - y_i) + weight_smooth * (y_next + y_prev - (2 * y_i))
+                    #y_round = round(y_i, ndigits=2)
+                    new[i][j] = round(y_i, ndigits=2)
+
+                    #print("y_1, y_2", "y_3", y_1, y_2, "\n",y_3)
                     change += abs(y_i - y_i_saved)
 
+                    print("change", change)
+                    print("new", new)
+                    
         return new
 
         
