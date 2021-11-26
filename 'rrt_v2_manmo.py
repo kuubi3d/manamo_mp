@@ -314,6 +314,7 @@ class RRT:
                         #print ("y1", y1,"\n")
 
                         RRT.wp_nodes = RRT.smooth(path_list)
+                        #RRT.wp_nodes.pop()
 
                         #RRT.smooth(path_list)
                         #RRT.wp_nodes = rrt_path.path_tree.edges
@@ -328,7 +329,7 @@ class RRT:
                         plt.plot(RRT.x_init[1], RRT.x_init[0], 'ro')
                         plt.plot(RRT.x_goal[1], RRT.x_goal[0], 'ro')
 
-                        for (v1, v2) in RRT.wp_nodes:
+                        for (v1, v2) in RRT.wp_nodes-1:
                         #for (v1, v2) in rrt_path.path_tree.edges:
                             plt.plot([v1[1], v2[1]], [v1[0], v2[0]], 'y-')
                         
@@ -395,15 +396,18 @@ class RRT:
                     print("change", change)
                     print("new", new, "\n")
             new = list(tuple(x) for x in new)
+            
             x = 0
+            s_path = []
             for i in range(0, len(new)-1):
-                
+                #print("len", i, len(new)-3)
                 rrt_path.add_rrt_vertex(new[i])
                 s_path[i] = (new[i], new[i+1])
                 
                 #x1, y1 = map(list, zip(*new))
                 #for j in range(0, len(new)-1):
-              
+            #print("len", i, len(new)-3)
+             
             return s_path
 
         
