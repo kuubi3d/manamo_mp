@@ -393,7 +393,7 @@ class RRT:
                     print("change", change)
                     print("new", new, "\n")
 
-            s_path = list(tuple(x) for x in new)
+            new = list(tuple(x) for x in new)
             x = 0
             s_path = list(new)
             for i in range(0, len(new)-1):
