@@ -378,31 +378,29 @@ class RRT:
 
                     x_i = s_path[i][j]
                     y_i, y_prev, y_next = new[i][j], new[i - 1][j], new[i + 1][j]
-
                     #print("y_i, y_prev, y_next", y_i, y_prev, y_next)
 
                     y_i_saved = y_i
-                    #y_1 = (weight_data * (x_i - y_i)) 
-                    #y_2 = (weight_smooth * (y_next + y_prev - (2 * y_i)))
+                    
                     print("change, weight data", change, weight_data)
 
                     y_i += weight_data * (x_i - y_i) + weight_smooth * (y_next + y_prev - (2 * y_i))
                     print("y_i", y_i)
                     new[i][j] = round(y_i, ndigits=4)
-
                     #print("y_1, y_2", "y_3", y_1, y_2, "\n",y_3)
+                    
                     change += abs(y_i - y_i_saved)
-
                     print("change", change)
                     print("new", new, "\n")
-            new = list(tuple(x) for x in new)
+
+            s_path = list(tuple(x) for x in new)
             x = 0
-            
+            s_path = list(new)
             for i in range(0, len(new)-1):
                 print ("len", len(new))
 
                 rrt_path.add_rrt_vertex(new[i])
-                s_path[i] = list((new[i], new[i+1]))
+                s_path[i] = ((new[i], new[i+1]))
             
             s_path.pop()
             
