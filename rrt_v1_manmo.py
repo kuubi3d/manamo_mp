@@ -285,32 +285,35 @@ class RRT:
                         #added to shift waypoints on the simulator if needed.
                         shft_x, shft_y = [0,0] 
                         #print ("Shift", shft_x, shft_y)
-                        
                         #RRT.wp_nodes = list((a-shft_x, b-shft_y) for a, b in rrt_path.path_tree.nodes)
+
+
                         print (rrt_path.path_tree.edges, "\n")
                         print (rrt_path.path_tree.nodes, "\n")
+
                        
                         path_list = [list(x) for x in (rrt_path.path_tree.nodes)]
                         print ("path_list", path_list,"\n")
+                        
+                        s_path = RRT.smooth(path_list)
+                        #print("smoothed", rrt_path)
+                        print("smooth_path", s_path)
+                        #print("networkx_path", rrt_path.path_tree.edges )
 
 
-
-                        RRT.wp_nodes = RRT.smooth(path_list)
-                        print("smoothed", RRT.wp_nodes)
-                        print("networkx_path", rrt_path.path_tree.edges )
 
                         plt.imshow(grid, cmap='Greys', origin='lower')
                         plt.plot(RRT.x_init[1], RRT.x_init[0], 'ro')
                         plt.plot(RRT.x_goal[1], RRT.x_goal[0], 'ro')
 
                         #for (v1, v2) in RRT.wp_nodes:
-                        for (v1, v2) in rrt_path.path_tree.edges:
+                        for (v1, v2) in s_path:
 
                             plt.plot([v1[1], v2[1]], [v1[0], v2[0]], 'y-')
                         
                         plt.show(block=True)
 
-                        return rrt
+                        return rrt_path
 
 
                         
@@ -322,7 +325,7 @@ class RRT:
                
 
         print("RRT Path Mapped")    
-        return rrt   
+        return rrt_path   
             
         #States
      
@@ -346,12 +349,13 @@ class RRT:
         """
         
         new = deepcopy(s_path)
+        rrt_path = RRT(RRT.x_init)
         dims = len(s_path[0])
         change = tolerance
         smooth = []
         while change >= tolerance:
             change = 0.0
-            rrt_path = RRT(RRT.x_init)
+            
             for i in range(1, len(new) - 1):
                 for j in range(dims):
 
@@ -374,7 +378,7 @@ class RRT:
 
             new = list(tuple(x) for x in new)
             x = 0
-            s_path = list(new)
+            RRT.s_path = []
             for i in range(0, len(new)-1):
                 print ("len", len(new))
 
@@ -383,9 +387,7 @@ class RRT:
                 s_path[i] = ((new[i], new[i+1]))
             
             s_path.pop()
-
-            
-            
+           
             
             
             """
@@ -416,7 +418,7 @@ class RRT:
 
             #"""  
             
-            return rrt_path
+            return s_path
 
         
 class States(Enum):
@@ -595,13 +597,13 @@ class MotionPlanning(Drone):
         # TODO (if you're feeling ambitious): Try a different approach altogether!
         
         
-        rrt = RRT.generate_RRT(self, grid, RRT.x_init, RRT.x_goal, RRT.num_vertices, RRT.dt)
+        rrt_path = RRT.generate_RRT(self, grid, RRT.x_init, RRT.x_goal, RRT.num_vertices, RRT.dt)
        
         # TODO: send waypoints to sim (this is just for visualization of waypoints)
         #self.send_waypoints()
 
-        
-        waypoints = [[r[0] + north_offset, r[1] + east_offset, TARGET_ALTITUDE, 0] for r in RRT.wp_nodes]
+        print("rrt_path for waypoints", rrt_path.path_tree.nodes)
+        waypoints = [[r[0] + north_offset, r[1] + east_offset, TARGET_ALTITUDE, 0] for r in RRT.s_path ]
         waypoints = list(reversed(waypoints))
         self.waypoints = waypoints
         # TODO: send waypoints to sim (this is just for visualization of waypoints)
