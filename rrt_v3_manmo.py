@@ -41,7 +41,6 @@ plt.switch_backend('Qt5agg')
 plt.rcParams['figure.figsize'] = 12, 12
 
 
-
 class RRT:
 
     x_goal = (30, 750)
@@ -112,6 +111,8 @@ class RRT:
         arguments.
         """
     
+
+
         # minimum and maximum north coordinates
         north_min = np.floor(np.min(data[:, 0] - data[:, 3]))
         north_max = np.ceil(np.max(data[:, 0] + data[:, 3]))
@@ -148,7 +149,8 @@ class RRT:
         print(grid, int(north_min), int(east_min))        
     
 
-       
+        #print(grid, drone_altitude, safety_distance)
+        #print(grid, int(north_min), int(east_min))
         return grid, int(north_min), int(east_min)
     
     def sample_state(self, grid):
@@ -180,7 +182,12 @@ class RRT:
             if d < closest_dist:
                 closest_dist = d
                 closest_vertex = v
-            
+            '''
+            if np.linalg.norm(x_goal - np.array(v[:2])) < 1.0:
+                print("Found Goal")    
+                sys.exit('Found Goal')
+            '''
+        
         return closest_vertex
 
 
@@ -211,6 +218,7 @@ class RRT:
     # Awesome! Now we'll put everything together and generate an RRT.
 
     
+
     def generate_RRT(self, grid, x_init, x_goal, num_vertices, dt):
        
         
@@ -224,8 +232,6 @@ class RRT:
         print ('Planning RRT path. It may take a few seconds...')
         rrt = RRT(x_init)
         rrt_path = RRT(x_init)
-        s_path = RRT(x_init)
-
         #plt.imshow(grid, cmap='Greys', origin='lower')
         sys.exit
         print("grid shape", grid.shape, grid)
@@ -243,10 +249,20 @@ class RRT:
             u = RRT.select_input(self, x_rand, x_near)
             x_new = RRT.new_state(self, x_near, u, dt)
             
+            #v_near = np.array([30, 750])
             norm_g = np.array(x_goal)
             norm_n = np.array(x_near)
-            
+            #norm_n = np.array(v_near)
            
+            
+            #print(norm_g, norm_n)
+            #print(np.linalg.norm(norm_g - norm_n))
+            
+            #rrt_cost = np.linalg.norm(np.array(x_new) - np.array(x_goal))
+            #rrt_cost = np.linalg.norm(norm_g - norm_n)
+            #print("edge cost", rrt_cost)
+
+
             if np.linalg.norm(norm_g - norm_n) < 200:
 
                 print ("Goal Found.")
@@ -263,12 +279,29 @@ class RRT:
                     plt.plot([v1[1], v2[1]], [v1[0], v2[0]], 'y-')
                 
                 plt.show(block=True)
-               
+                
+
+                
                 current_node = x_new
+
+                #pos = nx.spring_layout(rrt)
+
+                #nx.draw_networkx_nodes(rrt, pos)
+                #nx.draw_networkx_labels(rrt, pos)
+                #nx.draw_networkx_edges(rrt, pos, edge_color='r', arrows = True)
+
+                #plt.show(block=True)
+                #print("rrt path", rrt([0],[1],[2]))
 
                 for _ in range(num_vertices):
 
                     parent = list(rrt.get_parent(current_node))
+
+                    #current_node = (int(current_node[0]), int(current_node[1]))
+                    #current_node = [current_node, ((10, 140))]
+                    #print("current_node", current_node)
+                    #current_node = tuple(map(lambda x: abs(x[0] - x[1], current_node)))
+                    
                     current_node = (int(current_node[0]), int(current_node[1]))
                     parent_node = tuple(round(int(p1)) for p1 in parent[0])
                     
@@ -281,53 +314,34 @@ class RRT:
                     print("new parent", current_node)
                     
                     if parent_node == x_init:
-
+                        shft_x, shft_y = [0,0] #[int(grid.shape[0]/8), int(grid.shape[1]/8)]
+                        print ("Shift", shft_x, shft_y)
                         print("Path Mapped")
-                        
-                        #added to shift waypoints on the simulator if needed.
-                        shft_x, shft_y = [0,0] 
-                        #print ("Shift", shft_x, shft_y)
-                        #RRT.wp_nodes = list((a-shft_x, b-shft_y) for a, b in rrt_path.path_tree.nodes)
-
-
-                        print (rrt_path.path_tree.edges, "\n")
-                        print (rrt_path.path_tree.nodes, "\n")
-
-                       
-                        path_list = [list(x) for x in (rrt_path.path_tree.nodes)]
-                        print ("path_list", path_list,"\n")
-                        
-                        s_path = RRT.smooth(path_list)
-                        #print("smoothed", rrt_path)
-                        #print("smooth_path", s_path)
-                        #print("networkx_path", rrt_path.path_tree.edges )
-
-
+                        #RRT.wp_nodes = list(map(lambda n: n - shft_x, rrt_path.path_tree.nodes))
+                        RRT.wp_nodes = list((a-shft_x, b-shft_y) for a, b in rrt_path.path_tree.nodes)
+                        #RRT.wp_nodes = list(rrt_path.path_tree.nodes)
+                        print("path nodes", RRT.wp_nodes)
 
                         plt.imshow(grid, cmap='Greys', origin='lower')
                         plt.plot(RRT.x_init[1], RRT.x_init[0], 'ro')
                         plt.plot(RRT.x_goal[1], RRT.x_goal[0], 'ro')
 
-                        for (v1, v2) in RRT.wp_nodes:
-                        #for (v1, v2) in s_path:
-
+                        #for (v1, v2) in RRT.wp_nodes:
+                        for (v1, v2) in rrt_path.path_tree.edges:
                             plt.plot([v1[1], v2[1]], [v1[0], v2[0]], 'y-')
                         
                         plt.show(block=True)
-
-                        return RRT.s_path
-
-
-                        
+        
+                        return rrt
 
             elif grid[int(x_new[0]), int(x_new[1])] == 0:
                 # the orientation `u` will be added as metadata to
                 # the edge
                 rrt.add_edge(x_near, x_new, u)
-               
+                #memoize_nodes(grid, rrt_cost, x_init, x_goal, x_new, x_near, rrt, u)
 
         print("RRT Path Mapped")    
-        return RRT.s_path   
+        return rrt   
             
         #States
      
@@ -422,7 +436,8 @@ class RRT:
             print("smooth_path", RRT.wp_nodes)
             return RRT.wp_nodes
 
-        
+
+                    
 class States(Enum):
     MANUAL = auto()
     ARMING = auto()
@@ -598,14 +613,28 @@ class MotionPlanning(Drone):
         # TODO: prune path to minimize number of waypoints
         # TODO (if you're feeling ambitious): Try a different approach altogether!
         
+        #rrt = RRT.generate_RRT(self, grid, grid_start, grid_goal, RRT.num_vertices, RRT.dt)
+        rrt = RRT.generate_RRT(self, grid, RRT.x_init, RRT.x_goal, RRT.num_vertices, RRT.dt)
+        #print("a_star nodes", path, "\n")
+               
+        #print("rrt nodes", RRT.wp_nodes, "\n") #, rrt.edges
         
-        rrt_path = RRT.generate_RRT(self, grid, RRT.x_init, RRT.x_goal, RRT.num_vertices, RRT.dt)
-       
+        #rrt_path, _= list(rrt.vertices)
+         
+
+        #print (RRT.vertices)
+        # Convert path to waypoints
+        
+        
+        #waypoints = [[p[0] + north_offset, p[1] + east_offset, TARGET_ALTITUDE, 0] for p in path]
+        # Set self.waypoints
+        #self.waypoints = waypoints
         # TODO: send waypoints to sim (this is just for visualization of waypoints)
         #self.send_waypoints()
 
-        print("rrt_path for waypoints", RRT.s_path)
+        #waypoints = [[r[0], r[1], TARGET_ALTITUDE, 0] for r in RRT.wp_nodes]
         waypoints = [[r[0] + north_offset, r[1] + east_offset, TARGET_ALTITUDE, 0] for r in RRT.wp_nodes]
+        #Set self.waypoints
         waypoints = list(reversed(waypoints))
         self.waypoints = waypoints
         # TODO: send waypoints to sim (this is just for visualization of waypoints)
