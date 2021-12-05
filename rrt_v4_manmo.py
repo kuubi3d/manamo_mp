@@ -309,21 +309,13 @@ class RRT:
                         #print ("x1", x1,"\n")
                         #print ("y1", y1,"\n")
 
-                        RRT.wp_nodes = RRT.smooth(path_list)
+                        RRT.wp_nodes = RRT.smooth(path_list, grid)
 
                         
                         
                         print("smoothed", RRT.wp_nodes)
 
-                        plt.imshow(grid, cmap='Greys', origin='lower')
-                        plt.plot(RRT.x_init[1], RRT.x_init[0], 'ro')
-                        plt.plot(RRT.x_goal[1], RRT.x_goal[0], 'ro')
-
-                        for (v1, v2) in RRT.wp_nodes:
-                        #for (v1, v2) in rrt_path.path_tree.edges:
-                            plt.plot([v1[1], v2[1]], [v1[0], v2[0]], 'y-')
                         
-                        plt.show(block=True)
         
                         return rrt
 
@@ -343,7 +335,7 @@ class RRT:
     def heuristic(position, goal_position):
         return np.linalg.norm(np.array(position) - np.array(goal_position))
 
-    def smooth(s_path, weight_data=.1, weight_smooth=.9, tolerance=0.0001):
+    def smooth(s_path, grid, weight_data=.1, weight_smooth=.9, tolerance=0.0001):
         """
         Creates a smooth path for a n-dimensional series of coordinates.
 
@@ -390,17 +382,37 @@ class RRT:
             new = list(tuple(x) for x in new)
             x = 0
             s_path = list(new)
+            smooth = list(new)
             for i in range(0, len(new)-1):
                 print ("len", len(new))
 
                 rrt_path.add_rrt_vertex(new[i])
+                
+                # ~ data structure for NetworkX and matplotlib.
                 s_path[i] = ((new[i], new[i+1]))
-            
+     
             s_path.pop()
 
-            # ~ Convert edges to list of tuples for waypoint processing.
+            plt.imshow(grid, cmap='Greys', origin='lower')
+            plt.plot(RRT.x_init[1], RRT.x_init[0], 'ro')
+            plt.plot(RRT.x_goal[1], RRT.x_goal[0], 'ro')
 
+            for (v1, v2) in s_path:
+
+                print("v1, v2", v1, v2)    
+                #for (v1, v2) in rrt_path.path_tree.edges:
+                plt.plot([v1[1], v2[1]], [v1[0], v2[0]], 'y-')
+                #plt.plot([int(v1[1]), int(v2[1])], [int(v1[0]), int(v2[0])], 'y-')
+            plt.show(block=True) 
+
+
+
+            # ~ Converts NetworkX format into list of tuples for waypoint processing.
             
+            for j in range(0, len(new)-1):
+                print ("len", len(new))
+
+                smooth[j] = (new[j])
             
             
             
@@ -432,7 +444,7 @@ class RRT:
 
             #"""  
             
-            return s_path
+            return smooth
 
         
 class States(Enum):
