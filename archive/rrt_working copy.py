@@ -1,18 +1,22 @@
-
+from os import truncate
+import queue
 import sys
-from IPython import get_ipython
-import time
-import argparse
 
+import argparse
+import time
 import msgpack
 from enum import Enum, auto
 
 import numpy as np
-from sympy import interpolate
+import decimal
+
 
 # This file is subject to the terms and conditions defined in
 # file 'LICENSE', which is part of this source code package.
 
+from operator import itemgetter
+
+from sortedcontainers import SortedDict
 from planning_utils import a_star, heuristic, create_grid
 from udacidrone import Drone
 from udacidrone.connection import MavlinkConnection
@@ -20,20 +24,28 @@ from udacidrone.messaging import MsgID
 from udacidrone.frame_utils import global_to_local
 #from udacidrone.drone import set_home_position
 
+
 import matplotlib
 #matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
+from sklearn.neighbors import KDTree
 
 import networkx as nx
-
-from scipy import interpolate
 
 import matplotlib.pyplot as plt
 from networkx import Graph
 import graphviz
-import re
 
-from copy import deepcopy
+from IPython import get_ipython
+import time
+
+#from enum import Enum
+from queue import PriorityQueue
+
+import math
+from collections import Counter
+
+import re
 
 get_ipython().run_line_magic('matplotlib', 'inline')
 plt.switch_backend('Qt5agg')
@@ -112,6 +124,8 @@ class RRT:
         arguments.
         """
     
+
+
         # minimum and maximum north coordinates
         north_min = np.floor(np.min(data[:, 0] - data[:, 3]))
         north_max = np.ceil(np.max(data[:, 0] + data[:, 3]))
@@ -148,7 +162,8 @@ class RRT:
         print(grid, int(north_min), int(east_min))        
     
 
-       
+        #print(grid, drone_altitude, safety_distance)
+        #print(grid, int(north_min), int(east_min))
         return grid, int(north_min), int(east_min)
     
     def sample_state(self, grid):
@@ -180,7 +195,12 @@ class RRT:
             if d < closest_dist:
                 closest_dist = d
                 closest_vertex = v
-            
+            '''
+            if np.linalg.norm(x_goal - np.array(v[:2])) < 1.0:
+                print("Found Goal")    
+                sys.exit('Found Goal')
+            '''
+        
         return closest_vertex
 
 
@@ -211,6 +231,7 @@ class RRT:
     # Awesome! Now we'll put everything together and generate an RRT.
 
     
+
     def generate_RRT(self, grid, x_init, x_goal, num_vertices, dt):
        
         
@@ -241,10 +262,20 @@ class RRT:
             u = RRT.select_input(self, x_rand, x_near)
             x_new = RRT.new_state(self, x_near, u, dt)
             
+            #v_near = np.array([30, 750])
             norm_g = np.array(x_goal)
             norm_n = np.array(x_near)
-            
+            #norm_n = np.array(v_near)
            
+            
+            #print(norm_g, norm_n)
+            #print(np.linalg.norm(norm_g - norm_n))
+            
+            #rrt_cost = np.linalg.norm(np.array(x_new) - np.array(x_goal))
+            #rrt_cost = np.linalg.norm(norm_g - norm_n)
+            #print("edge cost", rrt_cost)
+
+
             if np.linalg.norm(norm_g - norm_n) < 200:
 
                 print ("Goal Found.")
@@ -261,12 +292,29 @@ class RRT:
                     plt.plot([v1[1], v2[1]], [v1[0], v2[0]], 'y-')
                 
                 plt.show(block=True)
-               
+                
+
+                
                 current_node = x_new
+
+                #pos = nx.spring_layout(rrt)
+
+                #nx.draw_networkx_nodes(rrt, pos)
+                #nx.draw_networkx_labels(rrt, pos)
+                #nx.draw_networkx_edges(rrt, pos, edge_color='r', arrows = True)
+
+                #plt.show(block=True)
+                #print("rrt path", rrt([0],[1],[2]))
 
                 for _ in range(num_vertices):
 
                     parent = list(rrt.get_parent(current_node))
+
+                    #current_node = (int(current_node[0]), int(current_node[1]))
+                    #current_node = [current_node, ((10, 140))]
+                    #print("current_node", current_node)
+                    #current_node = tuple(map(lambda x: abs(x[0] - x[1], current_node)))
+                    
                     current_node = (int(current_node[0]), int(current_node[1]))
                     parent_node = tuple(round(int(p1)) for p1 in parent[0])
                     
@@ -279,48 +327,20 @@ class RRT:
                     print("new parent", current_node)
                     
                     if parent_node == x_init:
-
+                        shft_x, shft_y = [0,0] #[int(grid.shape[0]/8), int(grid.shape[1]/8)]
+                        print ("Shift", shft_x, shft_y)
                         print("Path Mapped")
-                        
-                        #added to shift waypoints on the simulator if needed.
-                        shft_x, shft_y = [0,0] 
-                        #print ("Shift", shft_x, shft_y)
-                        #RRT.wp_nodes = list((a-shft_x, b-shft_y) for a, b in rrt_path.path_tree.nodes)
-                        
-                        print (rrt_path.path_tree.edges, "\n")
-                        print (rrt_path.path_tree.nodes, "\n")
-                        
-
-                        """ 
-                        **  MANAMO, THIS IS WHERE WE ARE LOOKING FOR A WAY TO SMOOTH THE PATH GENERATED BY THE RRT ALGORITHM ** 
-                            
-                            I tried using " interpolate.splprep..." and " interpolate.CubicSpline " but got  -- ValueError: `x` must be strictly increasing sequence -- even after sorting nodes on line 304.
-                            Once this part is working there are a few other sections that may need your assistance.  They invole argparse and some addtional methods that will be written.  
-
-                            Also, please provide any comments or suggestions on how things could be better organized and written.
-                    
-                        """
-                        path_list = [list(x) for x in (rrt_path.path_tree.nodes)]
-                       
-                        """ Added these lines to see if there was a problem with 'rrt_path.path_tree.nodes' data structure """
-                        
-
-                        print ("path_list", path_list,"\n")
-                        #print ("x1", x1,"\n")
-                        #print ("y1", y1,"\n")
-
-                        RRT.wp_nodes = RRT.smooth(path_list)
-
-                        
-                        
-                        print("smoothed", RRT.wp_nodes)
+                        #RRT.wp_nodes = list(map(lambda n: n - shft_x, rrt_path.path_tree.nodes))
+                        RRT.wp_nodes = list((a-shft_x, b-shft_y) for a, b in rrt_path.path_tree.nodes)
+                        #RRT.wp_nodes = list(rrt_path.path_tree.nodes)
+                        print("path nodes", RRT.wp_nodes)
 
                         plt.imshow(grid, cmap='Greys', origin='lower')
                         plt.plot(RRT.x_init[1], RRT.x_init[0], 'ro')
                         plt.plot(RRT.x_goal[1], RRT.x_goal[0], 'ro')
 
-                        for (v1, v2) in RRT.wp_nodes:
-                        #for (v1, v2) in rrt_path.path_tree.edges:
+                        #for (v1, v2) in RRT.wp_nodes:
+                        for (v1, v2) in rrt_path.path_tree.edges:
                             plt.plot([v1[1], v2[1]], [v1[0], v2[0]], 'y-')
                         
                         plt.show(block=True)
@@ -331,7 +351,7 @@ class RRT:
                 # the orientation `u` will be added as metadata to
                 # the edge
                 rrt.add_edge(x_near, x_new, u)
-               
+                #memoize_nodes(grid, rrt_cost, x_init, x_goal, x_new, x_near, rrt, u)
 
         print("RRT Path Mapped")    
         return rrt   
@@ -343,98 +363,9 @@ class RRT:
     def heuristic(position, goal_position):
         return np.linalg.norm(np.array(position) - np.array(goal_position))
 
-    def smooth(s_path, weight_data=.1, weight_smooth=.9, tolerance=0.0001):
-        """
-        Creates a smooth path for a n-dimensional series of coordinates.
 
-        Arguments:
-            path: List containing coordinates of a path
-            weight_data: Float, how much weight to update the data (alpha)
-            weight_smooth: Float, how much weight to smooth the coordinates (beta).
-            tolerance: Float, how much change per iteration is necessary to keep iterating.
 
-        Output:
-            new: List containing smoothed coordinates.
-        """
-        
-        # ~ Generates smoothing
-        
-        new = deepcopy(s_path)
-        dims = len(s_path[0])
-        change = tolerance
-        smooth = []
-        while change >= tolerance:
-            change = 0.0
-            rrt_path = RRT(RRT.x_init)
-            for i in range(1, len(new) - 1):
-                for j in range(dims):
-
-                    x_i = s_path[i][j]
-                    y_i, y_prev, y_next = new[i][j], new[i - 1][j], new[i + 1][j]
-                    #print("y_i, y_prev, y_next", y_i, y_prev, y_next)
-
-                    y_i_saved = y_i
                     
-                    print("change, weight data", change, weight_data)
-
-                    y_i += weight_data * (x_i - y_i) + weight_smooth * (y_next + y_prev - (2 * y_i))
-                    print("y_i", y_i)
-                    new[i][j] = round(y_i, ndigits=4)
-                    #print("y_1, y_2", "y_3", y_1, y_2, "\n",y_3)
-                    
-                    change += abs(y_i - y_i_saved)
-                    print("change", change)
-                    print("new", new, "\n")
-
-            # ~ Groups nodes into NetworkX edges format(sandbox).
-            new = list(tuple(x) for x in new)
-            x = 0
-            s_path = list(new)
-            for i in range(0, len(new)-1):
-                print ("len", len(new))
-
-                rrt_path.add_rrt_vertex(new[i])
-                s_path[i] = ((new[i], new[i+1]))
-            
-            s_path.pop()
-
-            # ~ Convert edges to list of tuples for waypoint processing.
-
-            
-            
-            
-            
-            """
-            s_path1 = [((20, 150), (118.0, 429.5)), ((118.0, 429.5), (176.0, 569.75)), ((176.0, 569.75), (210.5, 647.375)),
-                       ((210.5, 647.375), (236.25, 683.6875)), ((236.25, 683.6875), (254.625, 708.8438)), ((254.625, 708.8438), (271.8125, 716.9219)),
-                       ((271.8125, 716.9219), (288.9062, 724.461)), ((288.9062, 724.461), (305.9531, 726.2305)), ((305.9531, 726.2305), (323.4765, 725.1153)), 
-                       ((305.9531, 726.2305), (323.4765, 725.1153)), ((323.4765, 725.1153), (341.2382, 723.5576)), ((341.2382, 723.5576), (358.6191, 720.2788)),
-                       ((358.6191, 720.2788), (372.8096, 711.1394)), ((372.8096, 711.1394), (387.9048, 703.0697)), ((387.9048, 703.0697), (398.9524, 690.5349)),
-                       ((398.9524, 690.5349), (396.9762, 679.2675)), ((396.9762, 679.2675), (396.9881, 665.1337)), ((396.9881, 665.1337), (405.4941, 654.5668)),
-                       ((405.4941, 654.5668), (413.2471, 640.7834)), ((413.2471, 640.7834), (425.1236, 629.8917)), ((425.1236, 629.8917), (432.5618, 615.4459)),
-                       ((432.5618, 615.4459), (444.2809, 604.723)), ((444.2809, 604.723), (453.6404, 590.8615)), ((453.6404, 590.8615), (454.8202, 575.4307)),
-                       ((454.8202, 575.4307), (455.9101, 558.7153)), ((455.9101, 558.7153), (459.4551, 542.3576)), ((459.4551, 542.3576), (465.2276, 525.6788)),
-                       ((465.2276, 525.6788), (474.1138, 510.8394)), ((474.1138, 510.8394), (478.5569, 494.4197)), ((478.5569, 494.4197), (485.2785, 478.7098)),
-                       ((485.2785, 478.7098), (482.1393, 464.8549)), ((482.1393, 464.8549), (484.5697, 449.4275)), ((484.5697, 449.4275), (479.7849, 435.2138)),
-                       ((479.7849, 435.2138), (472.8924, 420.1069)), ((472.8924, 420.1069), (470.9462, 403.5534)), ((470.9462, 403.5534), (467.9731, 386.7767)),
-                       ((467.9731, 386.7767), (457.4865, 375.8884)), ((457.4865, 375.8884), (449.2432, 361.9442)), ((449.2432, 361.9442), (442.1216, 346.4721)),
-                       ((442.1216, 346.4721), (430.0608, 341.736)), ((430.0608, 341.736), (420.0304, 330.868)), ((420.0304, 330.868), (409.5152, 318.434)),
-                       ((409.5152, 318.434), (395.7576, 309.717)), ((395.7576, 309.717), (379.8788, 304.3585)), ((379.8788, 304.3585), (371.4394, 310.6793)),
-                       ((371.4394, 310.6793), (358.7197, 316.3397)), ((358.7197, 316.3397), (343.3598, 320.6698)), ((343.3598, 320.6698), (330.6799, 330.3349)),
-                       ((330.6799, 330.3349), (315.8399, 331.6675)), ((315.8399, 331.6675), (300.4199, 328.8338)), ((300.4199, 328.8338), (284.2099, 330.9169)),
-                       ((284.2099, 330.9169), (267.605, 335.4584)), ((267.605, 335.4584), (250.3025, 338.7292)), ((250.3025, 338.7292), (233.1513, 338.3646)),
-                       ((233.1513, 338.3646), (215.5756, 339.6823)), ((215.5756, 339.6823), (201.2878, 332.8411)), ((201.2878, 332.8411), (191.1439, 321.4205)),
-                       ((191.1439, 321.4205), (181.072, 307.7102)), ((181.072, 307.7102), (177.536, 291.8551)), ((177.536, 291.8551), (170.768, 276.9275)),
-                       ((170.768, 276.9275), (158.384, 269.9638)), ((158.384, 269.9638), (144.692, 261.9819)), ((144.692, 261.9819), (128.846, 256.4909)),
-                       ((128.846, 256.4909), (121.923, 244.7455)), ((121.923, 244.7455), (112.9615, 231.3727)), ((112.9615, 231.3727), (103.4808, 217.1864)),
-                       ((103.4808, 217.1864), (93.7404, 203.0932)), ((93.7404, 203.0932), (80.3702, 193.5466)), ((80.3702, 193.5466), (65.1851, 191.2733)),
-                       ((65.1851, 191.2733), (49.0926, 186.6367)), ((49.0926, 186.6367), (39.5463, 175.3184)), ((39.5463, 175.3184), (30, 164))] #[30, 164]]
-
-            #"""  
-            
-            return s_path
-
-        
 class States(Enum):
     MANUAL = auto()
     ARMING = auto()
@@ -610,14 +541,28 @@ class MotionPlanning(Drone):
         # TODO: prune path to minimize number of waypoints
         # TODO (if you're feeling ambitious): Try a different approach altogether!
         
-        
+        #rrt = RRT.generate_RRT(self, grid, grid_start, grid_goal, RRT.num_vertices, RRT.dt)
         rrt = RRT.generate_RRT(self, grid, RRT.x_init, RRT.x_goal, RRT.num_vertices, RRT.dt)
-       
+        #print("a_star nodes", path, "\n")
+               
+        #print("rrt nodes", RRT.wp_nodes, "\n") #, rrt.edges
+        
+        #rrt_path, _= list(rrt.vertices)
+         
+
+        #print (RRT.vertices)
+        # Convert path to waypoints
+        
+        
+        #waypoints = [[p[0] + north_offset, p[1] + east_offset, TARGET_ALTITUDE, 0] for p in path]
+        # Set self.waypoints
+        #self.waypoints = waypoints
         # TODO: send waypoints to sim (this is just for visualization of waypoints)
         #self.send_waypoints()
 
-        
+        #waypoints = [[r[0], r[1], TARGET_ALTITUDE, 0] for r in RRT.wp_nodes]
         waypoints = [[r[0] + north_offset, r[1] + east_offset, TARGET_ALTITUDE, 0] for r in RRT.wp_nodes]
+        #Set self.waypoints
         waypoints = list(reversed(waypoints))
         self.waypoints = waypoints
         # TODO: send waypoints to sim (this is just for visualization of waypoints)
